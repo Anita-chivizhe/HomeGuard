@@ -27,6 +27,9 @@ export default function App() {
           <Button color="inherit" component={Link} to="/coverage/manage">
             ⚙️ Manage Coverage
           </Button>
+          <Button color="inherit" component={Link} to="/property/edit">
+            ⚙️ Edit Property
+          </Button>
         </Toolbar>
       </AppBar>
 

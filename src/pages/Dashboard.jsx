@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Container,
   Typography,
@@ -17,6 +17,7 @@ import {
 import {
   Notifications as NotificationsIcon,
   AccountCircle as AccountCircleIcon,
+  Refresh as RefreshIcon,
 } from "@mui/icons-material";
 
 export function Dashboard() {
@@ -25,6 +26,7 @@ export function Dashboard() {
   const [userCoverages, setUserCoverages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredCoverages, setFilteredCoverages] = useState([]);
@@ -33,19 +35,30 @@ export function Dashboard() {
   const BASE_DATA_URL = "https://688906bcadf0e59551bc3e30.mockapi.io";
   const CURRENT_USER_ID = "1";
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(
+    async (isRefresh = false) => {
       try {
-        setLoading(true);
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
         setError(null);
 
+        console.log(
+          "🔄 " + (isRefresh ? "Refreshing" : "Loading") + " dashboard data..."
+        );
+
+        // Fetch user data
         const userResponse = await fetch(
           `${BASE_USER_URL}/users/${CURRENT_USER_ID}`
         );
         if (!userResponse.ok) throw new Error("Failed to fetch user data");
         const user = await userResponse.json();
         setUserData(user);
+        console.log("👤 User data:", user);
 
+        // Fetch property data
         const propertyResponse = await fetch(
           `${BASE_DATA_URL}/userProperties?userId=${CURRENT_USER_ID}`
         );
@@ -53,26 +66,79 @@ export function Dashboard() {
           throw new Error("Failed to fetch property data");
         const properties = await propertyResponse.json();
         setUserProperty(properties[0] || null);
+        console.log("🏠 Property data:", properties);
 
+        // Fetch coverage data
         const coverageResponse = await fetch(
           `${BASE_DATA_URL}/userCoverage?userId=${CURRENT_USER_ID}`
         );
         if (!coverageResponse.ok)
           throw new Error("Failed to fetch coverage data");
         const coverages = await coverageResponse.json();
+
+        console.log("📋 Coverage data loaded:", coverages);
+        console.log("📊 Coverage count:", coverages.length);
+
         setUserCoverages(coverages);
         setFilteredCoverages(coverages);
+
+        if (isRefresh && coverages.length > 0) {
+          console.log(
+            "✅ Dashboard refreshed successfully - found",
+            coverages.length,
+            "coverages"
+          );
+        }
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("❌ Error fetching data:", err);
         setError(err.message);
       } finally {
         setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [BASE_USER_URL, BASE_DATA_URL, CURRENT_USER_ID]
+  );
+
+  // Initial load
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Auto-refresh when window regains focus (user comes back from manage coverage)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log("👀 Window focused - refreshing dashboard data");
+      fetchData(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("👀 Page visible - refreshing dashboard data");
+        fetchData(true);
       }
     };
 
-    fetchData();
-  }, []);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchData]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log("⏰ Auto-refresh triggered");
+      fetchData(true);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // Filter coverages based on search
   useEffect(() => {
     const filtered = userCoverages.filter((coverage) =>
       [coverage.type, coverage.plan, coverage.status]
@@ -83,13 +149,31 @@ export function Dashboard() {
     setFilteredCoverages(filtered);
   }, [searchTerm, userCoverages]);
 
-  const totalPremium = userCoverages.reduce((sum, c) => sum + c.premium, 0);
+  const totalPremium = userCoverages.reduce(
+    (sum, c) => sum + (c.premium || 0),
+    0
+  );
 
-  const handleManageCoverage = (coverage) =>
+  const handleManualRefresh = () => {
+    console.log("🔄 Manual refresh triggered");
+    fetchData(true);
+  };
+
+  const handleManageCoverage = (coverage) => {
     console.log("Managing coverage:", coverage);
-  const handleEmergencyClaim = (coverage) =>
-    console.log("Emergency claim for:", coverage);
-  const handleBrowseOptions = () => console.log("Browse coverage options");
+    // Navigate to manage coverage page
+  };
+
+  const handleEmergencyClaim = (coverage) => {
+    alert(
+      `Emergency service activated for ${coverage.type}!\n\nOur support team will contact you within 15 minutes.`
+    );
+  };
+
+  const handleBrowseOptions = () => {
+    console.log("Browse coverage options");
+    // Navigate to browse coverage page
+  };
 
   if (loading) {
     return (
@@ -108,7 +192,7 @@ export function Dashboard() {
         <Alert severity="error" style={{ marginBottom: 20 }}>
           Error loading dashboard: {error}
         </Alert>
-        <Button variant="contained" onClick={() => window.location.reload()}>
+        <Button variant="contained" onClick={() => fetchData()}>
           Retry
         </Button>
       </Container>
@@ -127,58 +211,57 @@ export function Dashboard() {
 
   return (
     <Container maxWidth="lg" style={{ paddingTop: 20, paddingBottom: 20 }}>
-      <Paper
-        style={{
-          padding: 20,
-          marginBottom: 20,
-          backgroundColor: "#1976d2",
-          color: "white",
-        }}
+      {/* Header with refresh button */}
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        style={{ marginBottom: 30 }}
       >
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h4">🏡 HomeGuard Dashboard</Typography>
-          <Box>
-            <IconButton style={{ color: "white", marginRight: 8 }}>
-              <NotificationsIcon />
-            </IconButton>
-            <IconButton style={{ color: "white" }}>
-              <AccountCircleIcon />
-            </IconButton>
-          </Box>
+        <Box>
+          <Typography variant="h4" style={{ marginBottom: 10 }}>
+            Welcome back, {userData.firstName}! 👋🏽
+          </Typography>
+          <Typography
+            variant="h6"
+            color="textSecondary"
+            style={{ marginBottom: 15 }}
+          >
+            {userProperty
+              ? `Your home at ${userProperty.address} is protected`
+              : "Set up your property to get started"}
+          </Typography>
         </Box>
-      </Paper>
-
-      <Box style={{ marginBottom: 30 }}>
-        <Typography variant="h4" style={{ marginBottom: 10 }}>
-          Welcome back, {userData.firstName}! 👋🏽
-        </Typography>
-        <Typography
-          variant="h6"
-          color="textSecondary"
-          style={{ marginBottom: 15 }}
+        <IconButton
+          onClick={handleManualRefresh}
+          disabled={refreshing}
+          title="Refresh dashboard data"
         >
-          {userProperty
-            ? `Your home at ${userProperty.address} is protected`
-            : "Set up your property to get started"}
-        </Typography>
-        <Card
-          style={{
-            background: "linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)",
-            color: "white",
-          }}
-        >
-          <CardContent>
-            <Typography variant="h5">
-              Total Premium: R{totalPremium.toLocaleString()}/month
-            </Typography>
-            <Typography variant="body2" style={{ opacity: 0.9, marginTop: 5 }}>
-              {userCoverages.length} active coverage
-              {userCoverages.length !== 1 ? "s" : ""}
-            </Typography>
-          </CardContent>
-        </Card>
+          <RefreshIcon className={refreshing ? "rotating" : ""} />
+        </IconButton>
       </Box>
 
+      {/* Premium Summary Card */}
+      <Card
+        style={{
+          background: "linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)",
+          color: "white",
+          marginBottom: 30,
+        }}
+      >
+        <CardContent>
+          <Typography variant="h5">
+            Total Premium: R{totalPremium.toLocaleString()}/month
+          </Typography>
+          <Typography variant="body2" style={{ opacity: 0.9, marginTop: 5 }}>
+            {userCoverages.length} active coverage
+            {userCoverages.length !== 1 ? "s" : ""}
+            {refreshing && " • Refreshing..."}
+          </Typography>
+        </CardContent>
+      </Card>
+
+      {/* Search */}
       <Box style={{ marginBottom: 20 }}>
         <TextField
           fullWidth
@@ -239,7 +322,9 @@ export function Dashboard() {
               item
               xs={12}
               md={6}
-              key={coverage.userId + coverage.coverageTypeId}
+              key={
+                coverage.id || `${coverage.userId}-${coverage.coverageTypeId}`
+              }
             >
               <Card style={{ height: "100%" }}>
                 <CardContent>
@@ -249,7 +334,7 @@ export function Dashboard() {
                     style={{ marginBottom: 15 }}
                   >
                     <Typography variant="h4" style={{ marginRight: 15 }}>
-                      {coverage.icon}
+                      {coverage.icon || "📋"}
                     </Typography>
                     <Box>
                       <Typography variant="h6">{coverage.type}</Typography>
@@ -265,7 +350,7 @@ export function Dashboard() {
                     color="primary"
                     style={{ marginBottom: 10 }}
                   >
-                    R{coverage.premium.toLocaleString()}
+                    R{(coverage.premium || 0).toLocaleString()}
                     <Typography
                       variant="body2"
                       component="span"
@@ -279,7 +364,7 @@ export function Dashboard() {
                     color="textSecondary"
                     style={{ marginBottom: 10 }}
                   >
-                    Coverage: {coverage.coverage}
+                    Coverage: {coverage.coverage || "Standard coverage"}
                   </Typography>
                   <Box
                     display="flex"
@@ -287,7 +372,7 @@ export function Dashboard() {
                     style={{ marginBottom: 15, gap: "10px" }}
                   >
                     <Chip
-                      label={coverage.status}
+                      label={coverage.status || "Active"}
                       color={
                         coverage.status === "Active" ? "success" : "default"
                       }
@@ -295,7 +380,9 @@ export function Dashboard() {
                     />
                     <Typography variant="caption" color="textSecondary">
                       Active Since:{" "}
-                      {new Date(coverage.startDate).toLocaleDateString()}
+                      {coverage.startDate
+                        ? new Date(coverage.startDate).toLocaleDateString()
+                        : "N/A"}
                     </Typography>
                   </Box>
                   <Box display="flex" style={{ gap: "10px" }}>
@@ -324,7 +411,7 @@ export function Dashboard() {
         </Grid>
       )}
 
-      {userCoverages.length < 3 && (
+      {userCoverages.length < 3 && userCoverages.length > 0 && (
         <Paper
           style={{ padding: 20, marginTop: 20, backgroundColor: "#e3f2fd" }}
         >
@@ -344,6 +431,20 @@ export function Dashboard() {
           </Button>
         </Paper>
       )}
+
+      <style jsx>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        .rotating {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
     </Container>
   );
 }
