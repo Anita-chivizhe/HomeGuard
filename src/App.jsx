@@ -1,7 +1,7 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { AppBar, Toolbar, Button, Box, Typography } from "@mui/material";
 import { Dashboard } from "./pages/Dashboard";
-import { PropertySetup } from "./pages/propertySetUp";
+import { PropertySetup } from "./pages/PropertySetUp";
 import { BrowseCoverage } from "./pages/BrowseCoverageScreen";
 import { PropertyEdit } from "./pages/EditProperty";
 import { ManageCoverageScreen } from "./pages/CoverageManager";
