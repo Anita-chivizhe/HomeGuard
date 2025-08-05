@@ -13,7 +13,7 @@ export default function App() {
       {/* Material UI NavBar */}
       <AppBar position="static" color="primary">
         <Toolbar sx={{ display: "flex", gap: 2 }}>
-          {/* Optional: Add a logo or title */}
+         
           <Typography variant="h6" sx={{ flexGrow: 1 }}></Typography>
           <Button color="inherit" component={Link} to="/">
             🏡 Dashboard
