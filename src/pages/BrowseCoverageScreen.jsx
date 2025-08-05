@@ -27,7 +27,7 @@ export function BrowseCoverage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // API URLs - matching your existing configuration
+  
   const BASE_DATA_URL = "https://6888dcefadf0e59551bbb892.mockapi.io/";
 
   // Fetch coverage types from API
