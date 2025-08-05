@@ -1,4 +1,23 @@
 import { useEffect, useState } from "react";
+import {
+  Container,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  Button,
+  TextField,
+  Grid,
+  Chip,
+  IconButton,
+  Paper,
+  CircularProgress,
+  Alert,
+} from "@mui/material";
+import {
+  AccountCircle as AccountCircleIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
 
 export function Dashboard() {
   const [userData, setUserData] = useState({});
@@ -80,107 +99,208 @@ export function Dashboard() {
   // Show loading screen
   if (isLoading) {
     return (
-      <div className="dashboard-container">
-        <h1>Loading your dashboard...</h1>
-      </div>
+      <Container maxWidth="lg" style={{ paddingTop: 40, textAlign: "center" }}>
+        <CircularProgress size={60} />
+        <Typography variant="h6" style={{ marginTop: 20 }}>
+          Loading your dashboard...
+        </Typography>
+      </Container>
     );
   }
 
   // Show error screen
   if (error) {
     return (
-      <div className="dashboard-container">
-        <h1>Error: {error}</h1>
-        <button onClick={handleRefresh}>Try Again</button>
-      </div>
+      <Container maxWidth="lg" style={{ paddingTop: 20 }}>
+        <Alert severity="error" style={{ marginBottom: 20 }}>
+          Error loading dashboard: {error}
+        </Alert>
+        <Button variant="contained" onClick={handleRefresh}>
+          Try Again
+        </Button>
+      </Container>
     );
   }
 
   return (
-    <div className="dashboard-container">
+    <Container maxWidth="lg" style={{ paddingTop: 20, paddingBottom: 20 }}>
       {/* Header Section */}
-      <div className="dashboard-header">
-        <div>
-          <h1>Welcome back, {userData.firstName}! 👋</h1>
-          <p>Your insurance dashboard</p>
-        </div>
-        <button onClick={handleRefresh} className="refresh-btn">
-          🔄 Refresh
-        </button>
-      </div>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        style={{ marginBottom: 30 }}
+      >
+        <Box>
+          <Typography variant="h4" style={{ marginBottom: 10 }}>
+            Welcome back, {userData.firstName}! 👋
+          </Typography>
+          <Typography variant="h6" color="textSecondary">
+            Your insurance dashboard
+          </Typography>
+        </Box>
+        <IconButton onClick={handleRefresh} title="Refresh dashboard data">
+          <RefreshIcon />
+        </IconButton>
+      </Box>
 
       {/* Premium Summary */}
-      <div className="premium-card">
-        <h2>Total Premium: R{totalPremium.toLocaleString()}/month</h2>
-        <p>{userCoverages.length} active coverages</p>
-      </div>
+      <Card
+        style={{
+          background: "linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)",
+          color: "white",
+          marginBottom: 30,
+        }}
+      >
+        <CardContent>
+          <Typography variant="h5">
+            Total Premium: R{totalPremium.toLocaleString()}/month
+          </Typography>
+          <Typography variant="body2" style={{ opacity: 0.9, marginTop: 5 }}>
+            {userCoverages.length} active coverage
+            {userCoverages.length !== 1 ? "s" : ""}
+          </Typography>
+        </CardContent>
+      </Card>
 
       {/* Search Box */}
-      <div className="search-section">
-        <input
-          type="text"
+      <Box style={{ marginBottom: 20 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
           placeholder="🔍 Search coverages..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
+          style={{ marginBottom: 10 }}
         />
-      </div>
+        {searchTerm && (
+          <Typography variant="body2" color="textSecondary">
+            Showing {filteredCoverages.length} of {userCoverages.length} coverages
+          </Typography>
+        )}
+      </Box>
 
       {/* Coverages Section */}
-      <h2>Your Active Coverages ({filteredCoverages.length})</h2>
+      <Typography variant="h5" style={{ marginBottom: 20 }}>
+        Your Active Coverages ({filteredCoverages.length})
+      </Typography>
 
       {filteredCoverages.length === 0 ? (
-        <div className="no-coverages">
-          <h3>No coverages found</h3>
-          <p>Try adjusting your search or add new coverage</p>
-        </div>
+        <Paper
+          style={{
+            padding: 40,
+            textAlign: "center",
+            backgroundColor: "#f5f5f5",
+          }}
+        >
+          <Typography variant="h6" style={{ marginBottom: 10 }}>
+            {searchTerm ? "No coverages match your search" : "No active coverages"}
+          </Typography>
+          <Typography
+            variant="body1"
+            color="textSecondary"
+            style={{ marginBottom: 20 }}
+          >
+            {searchTerm
+              ? "Try adjusting your search terms"
+              : "Get started by browsing our coverage options"}
+          </Typography>
+          {!searchTerm && (
+            <Button variant="contained" color="primary">
+              Browse Coverage Options
+            </Button>
+          )}
+        </Paper>
       ) : (
-        <div className="coverages-grid">
+        <Grid container spacing={3}>
           {filteredCoverages.map((coverage, index) => (
-            <div key={coverage.id || index} className="coverage-card">
-              <div className="coverage-header">
-                <span className="coverage-icon">{coverage.icon || "📋"}</span>
-                <div>
-                  <h3>{coverage.type}</h3>
-                  <span className="plan-badge">{coverage.plan} Plan</span>
-                </div>
-              </div>
-              
-              <div className="coverage-premium">
-                <h2>R{(coverage.premium || 0).toLocaleString()}</h2>
-                <span>/month</span>
-              </div>
-              
-              <p className="coverage-description">
-                {coverage.coverage || "Standard coverage"}
-              </p>
-              
-              <div className="coverage-status">
-                <span className="status-badge">{coverage.status || "Active"}</span>
-                <span className="start-date">
-                  Since: {coverage.startDate ? 
-                    new Date(coverage.startDate).toLocaleDateString() : "N/A"}
-                </span>
-              </div>
-              
-              <div className="coverage-buttons">
-                <button 
-                  onClick={() => handleManageCoverage(coverage)}
-                  className="manage-btn"
-                >
-                  Manage
-                </button>
-                <button 
-                  onClick={() => handleEmergencyClaim(coverage)}
-                  className="emergency-btn"
-                >
-                  Emergency
-                </button>
-              </div>
-            </div>
+            <Grid item xs={12} md={6} key={coverage.id || index}>
+              <Card style={{ height: "100%" }}>
+                <CardContent>
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    style={{ marginBottom: 15 }}
+                  >
+                    <Typography variant="h4" style={{ marginRight: 15 }}>
+                      {coverage.icon || "📋"}
+                    </Typography>
+                    <Box>
+                      <Typography variant="h6">{coverage.type}</Typography>
+                      <Chip
+                        label={`${coverage.plan} Plan`}
+                        size="small"
+                        color="primary"
+                      />
+                    </Box>
+                  </Box>
+                  
+                  <Typography
+                    variant="h4"
+                    color="primary"
+                    style={{ marginBottom: 10 }}
+                  >
+                    R{(coverage.premium || 0).toLocaleString()}
+                    <Typography
+                      variant="body2"
+                      component="span"
+                      color="textSecondary"
+                    >
+                      /month
+                    </Typography>
+                  </Typography>
+                  
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    style={{ marginBottom: 10 }}
+                  >
+                    Coverage: {coverage.coverage || "Standard coverage"}
+                  </Typography>
+                  
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    style={{ marginBottom: 15, gap: "10px" }}
+                  >
+                    <Chip
+                      label={coverage.status || "Active"}
+                      color={coverage.status === "Active" ? "success" : "default"}
+                      size="small"
+                    />
+                    <Typography variant="caption" color="textSecondary">
+                      Active Since:{" "}
+                      {coverage.startDate
+                        ? new Date(coverage.startDate).toLocaleDateString()
+                        : "N/A"}
+                    </Typography>
+                  </Box>
+                  
+                  <Box display="flex" style={{ gap: "10px" }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => handleManageCoverage(coverage)}
+                      style={{ flex: 1 }}
+                    >
+                      Manage
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      onClick={() => handleEmergencyClaim(coverage)}
+                      style={{ flex: 1 }}
+                    >
+                      Emergency
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
           ))}
-        </div>
+        </Grid>
       )}
-    </div>
+    </Container>
   );
 }
