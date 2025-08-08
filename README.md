@@ -34,7 +34,7 @@
    ```
 3. Run dev server:
    ```bash
-   npm install
+   npm run dev
    ```
 4. 🌐 Open in your 🧭 browser at:
    ```bash
